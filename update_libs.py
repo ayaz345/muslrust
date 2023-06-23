@@ -40,7 +40,9 @@ def convert_sqlite_version(version):
     """
 
     matches = re.match(r'(\d+)\.(\d+)\.(\d+)', version)
-    return '{:d}{:02d}{:02d}00'.format(int(matches.group(1)), int(matches.group(2)), int(matches.group(3)))
+    return '{:d}{:02d}{:02d}00'.format(
+        int(matches[1]), int(matches[2]), int(matches[3])
+    )
 
 
 def pkgver(package):
@@ -56,14 +58,14 @@ def pkgver(package):
     """
 
     # Though the URL contains "/search/", this only returns exact matches (see API documentation)
-    url = 'https://www.archlinux.org/packages/search/json/?name={}'.format(package)
+    url = f'https://www.archlinux.org/packages/search/json/?name={package}'
     req = urllib.urlopen(url)
     metadata = json.loads(req.read())
     req.close()
     try:
         return metadata['results'][0]['pkgver']
     except IndexError:
-        raise NameError('Package not found: {}'.format(package))
+        raise NameError(f'Package not found: {package}')
 
 
 def rustup_version():
@@ -91,23 +93,19 @@ if __name__ == '__main__':
     }
 
     # Show a list of packages with current versions
-    for prefix in PACKAGES:
-        print('{}_VER="{}"'.format(prefix, PACKAGES[prefix]))
+    for prefix, value in PACKAGES.items():
+        print(f'{prefix}_VER="{value}"')
 
     # Update Dockerfile
     fname = 'Dockerfile'
-    # Open a different file for the destination to update Dockerfile atomically
-    src = open(fname, 'r')
-    dst = open(f'{fname}.new', 'w')
+    with open(fname, 'r') as src:
+        dst = open(f'{fname}.new', 'w')
 
-    # Iterate over each line in Dockerfile, replacing any *_VER variables with the most recent version
-    for line in src:
-        for prefix in PACKAGES:
-            version = PACKAGES[prefix]
-            line = re.sub(r'({}_VER=)\S+'.format(prefix), r'\1"{}"'.format(version), line)
-        dst.write(line)
+            # Iterate over each line in Dockerfile, replacing any *_VER variables with the most recent version
+        for line in src:
+            for prefix, version in PACKAGES.items():
+                line = re.sub(f'({prefix}_VER=)\S+', f'\1"{version}"', line)
+            dst.write(line)
 
-    # Close original and new Dockerfile then overwrite the old with the new
-    src.close()
     dst.close()
     os.rename(f'{fname}.new', fname)

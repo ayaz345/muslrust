@@ -30,10 +30,7 @@ def tag_exists(tag):
     req = urllib.urlopen(url)
     data = json.loads(req.read())
     req.close()
-    for x in data['results']:
-        if x['name'] == tag:
-            return True
-    return False
+    return any(x['name'] == tag for x in data['results'])
 
 
 if __name__ == '__main__':
